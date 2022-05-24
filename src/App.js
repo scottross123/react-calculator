@@ -1,39 +1,183 @@
+import { useReducer } from 'react';
+import DigitButton from './DigitButton';
+import OpButton from './OpButton';
 import './App.css';
 
+export const ACTIONS = {
+  ADD_DIGIT: 'add-digit',
+  DEL_DIGIT: 'del-digit',
+  CHOOSE_OP: 'choose-op',
+  CLEAR: 'clear',
+  EVALUATE: 'evaluate'
+}
+
+function reducer(state, { type, payload }) {
+  switch (type) {
+    case ACTIONS.ADD_DIGIT:
+      if (state.overwrite) {
+        return {
+          ...state,
+          currOperand: payload.digit,
+          overwrite: false,
+        }
+      }
+
+      if (payload.digit === "0" && state.currOperand === "0") {
+        return state;
+      }
+
+      if (payload.digit === "." && state.currOperand.includes(".")) {
+        return state;
+      }
+
+      return {
+        ...state,
+        currOperand: `${state.currOperand || ""}${payload.digit}`
+      }
+    case ACTIONS.DEL_DIGIT:
+      case ACTIONS.ADD_DIGIT:
+        if (state.overwrite) {
+          return {
+            ...state,
+            currOperand: payload.digit,
+            overwrite: false,
+          }
+        }
+
+        if (state.currOperand == null && state.prevOperand == null) {
+          return state
+        }
+
+        if (state.currOperand.length === 1) {
+          return {
+            ...state,
+            currOperand: null
+          }
+        }
+  
+      return {
+        ...state,
+        currOperand: state.currOperand.slice(0, -1)
+      }
+    case ACTIONS.CHOOSE_OP:
+      if (state.currOperand == null && state.prevOperand == null) {
+        return state
+      }
+
+      if (state.prevOperand == null) {
+        return {
+          ...state,
+          op: payload.op,
+          prevOperand: state.currOperand,
+          currOperand: null,
+        }
+      }
+
+      if (state.currOperand == null) {
+        return {
+          ...state,
+          op: payload.op,
+        }
+      }
+    
+      return {
+        ...state,
+        prevOperand: evaluate(state),
+        op: payload.op,
+        currOperand: null,
+      }
+    case ACTIONS.CLEAR:
+      return {}
+    case ACTIONS.EVALUATE:
+      if (state.op == null || state.currOperand == null || state.prevOperand == null) {
+        return state;
+      }
+
+      return {
+        ...state,
+        overwrite: true,
+        prevOperand: null,
+        op: null,
+        currOperand: evaluate(state)
+      }
+    default:
+      return {}
+  }
+}
+
+function evaluate({ currOperand, prevOperand, op }) {
+  const prev = parseFloat(prevOperand)
+  const curr = parseFloat(currOperand)
+
+  if (isNaN(prev) || isNaN(curr)) {
+    return ""
+  }
+
+  let computation = ""
+  switch (op) {
+    case "/":
+      computation = prev / curr
+      break
+    case "*":
+      computation = prev * curr
+      break
+    case "+":
+      computation = prev + curr
+      break
+    case "-":
+      computation = prev - curr
+      break
+  }
+
+  return computation.toString()
+}
+
 function App() {
+  const [{ currOperand, prevOperand, op }, dispatch] = useReducer(reducer, {})
+
   return (
     <div className="calc-grid">
       <div className="output">
         <div className="prev-op">
-
+          {prevOperand} {op}
         </div>
         <div className="curr-op">
-
+          {currOperand} {op}
         </div>
       </div>
 
-      <button className="span-two">ac</button>
-      <button>del</button>
-      <button>/</button>
+      <button 
+        className="span-two" 
+        onClick={() => dispatch({ type: ACTIONS.CLEAR })}>
+        ac
+      </button>
+      <button 
+        onClick={() => dispatch({ type: ACTIONS.DEL_DIGIT })}>
+        del
+      </button>
+      <OpButton op="/" dispatch={dispatch} />
 
-      <button>1</button>
-      <button>2</button>
-      <button>3</button>
-      <button>*</button>
+      <DigitButton digit="1" dispatch={dispatch} />
+      <DigitButton digit="2" dispatch={dispatch} />
+      <DigitButton digit="3" dispatch={dispatch} />
+      <OpButton op="*" dispatch={dispatch} />
 
-      <button>4</button>
-      <button>5</button>
-      <button>6</button>
-      <button>+</button>
+      <DigitButton digit="4" dispatch={dispatch} />
+      <DigitButton digit="5" dispatch={dispatch} />
+      <DigitButton digit="6" dispatch={dispatch} />
+      <OpButton op="+" dispatch={dispatch} />
 
-      <button>7</button>
-      <button>8</button>
-      <button>9</button>
-      <button>-</button>
+      <DigitButton digit="7" dispatch={dispatch} />
+      <DigitButton digit="8" dispatch={dispatch} />
+      <DigitButton digit="9" dispatch={dispatch} />
+      <OpButton op="-" dispatch={dispatch} />
 
       <button className="span-two">0</button>
-      <button>.</button>
-      <button>=</button>
+      <DigitButton digit="." dispatch={dispatch} />
+      <button 
+        onClick={() => dispatch({ type: ACTIONS.EVALUATE })}>
+        =
+      </button>
     </div>
   );
 }
