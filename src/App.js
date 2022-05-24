@@ -8,7 +8,8 @@ export const ACTIONS = {
   DEL_DIGIT: 'del-digit',
   CHOOSE_OP: 'choose-op',
   CLEAR: 'clear',
-  EVALUATE: 'evaluate'
+  EVALUATE: 'evaluate',
+  NEGATE: 'negate',
 }
 
 function reducer(state, { type, payload }) {
@@ -35,25 +36,24 @@ function reducer(state, { type, payload }) {
         currOperand: `${state.currOperand || ""}${payload.digit}`
       }
     case ACTIONS.DEL_DIGIT:
-      case ACTIONS.ADD_DIGIT:
-        if (state.overwrite) {
-          return {
-            ...state,
-            currOperand: payload.digit,
-            overwrite: false,
-          }
+      if (state.overwrite) {
+        return {
+          ...state,
+          currOperand: payload.digit,
+          overwrite: false,
         }
+      }
 
-        if (state.currOperand == null && state.prevOperand == null) {
-          return state
-        }
+      if (state.currOperand == null && state.prevOperand == null) {
+        return state
+      }
 
-        if (state.currOperand.length === 1) {
-          return {
-            ...state,
-            currOperand: null
-          }
+      if (state.currOperand.length === 1) {
+        return {
+          ...state,
+          currOperand: null
         }
+      }
   
       return {
         ...state,
@@ -98,7 +98,17 @@ function reducer(state, { type, payload }) {
         overwrite: true,
         prevOperand: null,
         op: null,
-        currOperand: evaluate(state)
+        currOperand: evaluate(state),
+      }
+
+    case ACTIONS.NEGATE:
+      if (state.currOperand == null) {
+        return state
+      }
+
+      return {
+        ...state,
+        currOperand: state.currOperand * -1,
       }
     default:
       return {}
@@ -127,9 +137,28 @@ function evaluate({ currOperand, prevOperand, op }) {
     case "-":
       computation = prev - curr
       break
+    case "%":
+      computation = prev % curr
   }
 
   return computation.toString()
+}
+
+const INTEGER_FORMATTER = new Intl.NumberFormat("en-us", {
+  maximumFractionDigists: 0,
+})
+
+function formatOperand(operand) {
+  if (operand == null) {
+    return
+  }
+
+  const [integer, decimal] = operand.split('.')
+  if (decimal == null) {
+    return INTEGER_FORMATTER.format(integer)
+  }
+
+  return `${INTEGER_FORMATTER.format(integer)}.${decimal}`
 }
 
 function App() {
@@ -147,7 +176,6 @@ function App() {
       </div>
 
       <button 
-        className="span-two" 
         onClick={() => dispatch({ type: ACTIONS.CLEAR })}>
         ac
       </button>
@@ -155,6 +183,7 @@ function App() {
         onClick={() => dispatch({ type: ACTIONS.DEL_DIGIT })}>
         del
       </button>
+      <OpButton op="%" dispatch={dispatch} />
       <OpButton op="/" dispatch={dispatch} />
 
       <DigitButton digit="1" dispatch={dispatch} />
@@ -172,8 +201,12 @@ function App() {
       <DigitButton digit="9" dispatch={dispatch} />
       <OpButton op="-" dispatch={dispatch} />
 
-      <button className="span-two">0</button>
+      <DigitButton digit="0" dispatch={dispatch} />
       <DigitButton digit="." dispatch={dispatch} />
+      <button 
+        onClick={() => dispatch({ type: ACTIONS.NEGATE })}>
+        +/-
+      </button>
       <button 
         onClick={() => dispatch({ type: ACTIONS.EVALUATE })}>
         =

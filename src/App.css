@@ -41,7 +41,7 @@ body {
     justify-content: space-around;
     padding: .75rem;
     word-wrap: break-word;
-    word-break: word-all;
+    word-break: break-all;
 }
 
 .output .prev-op {
